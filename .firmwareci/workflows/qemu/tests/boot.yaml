@@ -1,0 +1,34 @@
+name: Boot Test
+description: This test is a simple boot test.
+
+defaults:
+  transport: &transport
+    proto: ssh
+    options:
+      host: "[[attributes.Host]]"
+      port: 2222
+      user: root
+
+stages:
+  - name: Run Boot Test
+    steps:
+      - cmd: cmd
+        name: Print Kernel Version
+        transport: *transport
+        parameters:
+          executable: uname
+          args: ["-a"]
+
+      - cmd: cmd
+        name: Print OS Release
+        transport: *transport
+        parameters:
+          executable: cat
+          args: ["/etc/os-release"]
+
+      - cmd: cmd
+        name: Print BIOS Information
+        transport: *transport
+        parameters:
+          executable: dmidecode
+          args: ["-t", "bios"]

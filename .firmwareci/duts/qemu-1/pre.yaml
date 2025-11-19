@@ -1,0 +1,35 @@
+pre-stage:
+  - cmd: qemu
+    name: Start Ubuntu VM with coreboot BIOS
+    parameters:
+      mode: start
+      args:
+        [
+          "-m",
+          "2048",
+          "-smp",
+          "2",
+          "-bios",
+          "[[input.Binary]]",
+          "-nographic",
+          "-drive",
+          "file=[[storage.OSImage]]/nixos.img,format=raw,if=ide",
+          "-nic",
+          "user,hostfwd=tcp::[[attributes.Port]]-:22,hostname=qemu",
+        ]
+      executable: "qemu-system-x86_64"
+      firmware: "[[input.Binary]]"
+      variable: qemu_pid
+      serial:
+        - expect:
+            regex: "Booting from Hard Disk"
+          timeout: 30s
+        - expect:
+            regex: "Welcome to NixOS"
+          timeout: 120s
+
+  - cmd: ping
+    name: Ping QEMU Host
+    parameters:
+      host: localhost
+      port: 2222

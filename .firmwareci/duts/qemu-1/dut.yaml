@@ -1,0 +1,5 @@
+name: QEMU-DUT-1
+label: qemu-dut
+attributes:
+  Host: localhost
+  Port: "2222"
