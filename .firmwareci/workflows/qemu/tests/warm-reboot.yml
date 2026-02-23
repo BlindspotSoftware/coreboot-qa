@@ -1,0 +1,165 @@
+name: Warm Reboot Test
+description: Flash the provided firmware binary and do multiple warm reboots.
+
+stages:
+  - name: Reboot 1
+    steps:
+      - cmd: qemu
+        name: Warm reboot DUT
+        options:
+          timeout: 5m
+        parameters:
+          mode: run
+          variable: qemu_pid
+          serial:
+            - send: "reboot"
+            - expect:
+                regex: "Welcome to NixOS"
+              timeout: 2m0s
+
+  - name: Reboot 2
+    steps:
+      - cmd: qemu
+        name: Warm reboot DUT
+        options:
+          timeout: 5m
+        parameters:
+          mode: run
+          variable: qemu_pid
+          serial:
+            - send: "reboot"
+            - expect:
+                regex: "Welcome to NixOS"
+              timeout: 2m0s
+
+  - name: Reboot 3
+    steps:
+      - cmd: qemu
+        name: Warm reboot DUT
+        options:
+          timeout: 5m
+        parameters:
+          mode: run
+          variable: qemu_pid
+          serial:
+            - send: "reboot"
+            - expect:
+                regex: "Welcome to NixOS"
+              timeout: 2m0s
+
+  - name: Reboot 4
+    steps:
+      - cmd: qemu
+        name: Warm reboot DUT
+        options:
+          timeout: 5m
+        parameters:
+          mode: run
+          variable: qemu_pid
+          serial:
+            - send: "reboot"
+            - expect:
+                regex: "Welcome to NixOS"
+              timeout: 2m0s
+
+  - name: Reboot 5
+    steps:
+      - cmd: qemu
+        name: Warm reboot DUT
+        options:
+          timeout: 5m
+        parameters:
+          mode: run
+          variable: qemu_pid
+          serial:
+            - send: "reboot"
+            - expect:
+                regex: "Welcome to NixOS"
+              timeout: 2m0s
+
+  - name: Reboot 6
+    steps:
+      - cmd: qemu
+        name: Warm reboot DUT
+        options:
+          timeout: 5m
+        parameters:
+          mode: run
+          variable: qemu_pid
+          serial:
+            - send: "reboot"
+            - expect:
+                regex: "Welcome to NixOS"
+              timeout: 2m0s
+
+  - name: Reboot 7
+    steps:
+      - cmd: qemu
+        name: Warm reboot DUT
+        options:
+          timeout: 5m
+        parameters:
+          mode: run
+          variable: qemu_pid
+          serial:
+            - send: "reboot"
+            - expect:
+                regex: "Welcome to NixOS"
+              timeout: 2m0s
+
+  - name: Reboot 8
+    steps:
+      - cmd: qemu
+        name: Warm reboot DUT
+        options:
+          timeout: 5m
+        parameters:
+          mode: run
+          variable: qemu_pid
+          serial:
+            - send: "reboot"
+            - expect:
+                regex: "Welcome to NixOS"
+              timeout: 2m0s
+
+  - name: Reboot 9
+    steps:
+      - cmd: qemu
+        name: Warm reboot DUT
+        options:
+          timeout: 5m
+        parameters:
+          mode: run
+          variable: qemu_pid
+          serial:
+            - send: "reboot"
+            - expect:
+                regex: "Welcome to NixOS"
+              timeout: 2m0s
+
+  - name: Reboot 10
+    steps:
+      - cmd: qemu
+        name: Warm reboot DUT
+        options:
+          timeout: 5m
+        parameters:
+          mode: run
+          variable: qemu_pid
+          serial:
+            - send: "reboot"
+            - expect:
+                regex: "Welcome to NixOS"
+              timeout: 2m0s
+
+  - name: Shutdown
+    steps:
+      - cmd: qemu
+        name: Power off device
+        options:
+          timeout: 2m
+        parameters:
+          mode: run
+          variable: qemu_pid
+          serial:
+            - send: "poweroff"

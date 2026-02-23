@@ -1,0 +1,53 @@
+name: Check PCI Devices
+description: Flash the provided firmware binary and check if the PCI devices are detected.
+
+defaults:
+  transport: &transport
+    proto: ssh
+    options:
+      host: "[[attributes.Host]]"
+      port: 2222
+      user: root
+      identity_file: /root/.ssh/fwci
+
+stages:
+  - name: Boot Test
+    steps:
+      - cmd: cmd
+        name: Check Host Bridge
+        transport: *transport
+        parameters:
+          executable: lspci
+          expect:
+            - regex: "Host bridge"
+
+      - cmd: cmd
+        name: Check ISA Bridge
+        transport: *transport
+        parameters:
+          executable: lspci
+          expect:
+            - regex: "ISA bridge"
+
+      - cmd: cmd
+        name: Check VGA Controller
+        transport: *transport
+        parameters:
+          executable: lspci
+          expect:
+            - regex: "VGA compatible controller"
+
+      - cmd: cmd
+        name: Check Ethernet Controller
+        transport: *transport
+        parameters:
+          executable: lspci
+          expect:
+            - regex: "Ethernet controller"
+
+      - cmd: cmd
+        name: Power off device
+        transport: *transport
+        parameters:
+          executable: shutdown
+          args: ["now"]
