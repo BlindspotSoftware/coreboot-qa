@@ -1,5 +1,6 @@
 name: QEMU-DUT-1
 label: qemu-dut
+reservation-system: virtual
 attributes:
   Host: localhost
   Port: "2222"
