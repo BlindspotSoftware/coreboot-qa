@@ -54,12 +54,19 @@
         pkgs = import nixpkgs { inherit system; };
         inherit (firmwareci-base-image.outputs) baseConfig;
 
+        corebootToolsConfig = { config, pkgs, ... }: {
+          environment.systemPackages = with pkgs; [
+            coreboot-utils
+          ];
+        };
+
         nixosConfigurations = {
           qemu = nixpkgs.lib.nixosSystem {
             inherit system;
             modules = [
               baseConfig
               legacyConfig
+              corebootToolsConfig
             ];
           };
         };

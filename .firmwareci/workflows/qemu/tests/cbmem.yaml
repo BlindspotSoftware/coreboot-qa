@@ -1,0 +1,38 @@
+name: Coreboot Tables / CBMEM
+description: Verify coreboot tables and console log are healthy.
+
+defaults:
+  transport: &transport
+    proto: ssh
+    options:
+      host: "[[attributes.Host]]"
+      port: 2222
+      user: root
+
+stages:
+  - name: Inspect coreboot tables
+    steps:
+      - cmd: cmd
+        name: List CBMEM entries
+        transport: *transport
+        parameters:
+          executable: cbmem
+          args: ["-l"]
+          expect:
+            - regex: "CONSOLE"
+            - regex: "TIME STAMP"
+
+      - cmd: cmd
+        name: Dump coreboot console
+        transport: *transport
+        parameters:
+          executable: cbmem
+          args: ["-c"]
+          expect:
+            - regex: "coreboot"
+
+      - cmd: shell
+        name: Fail on ERROR/ASSERT/BUG in coreboot log
+        transport: *transport
+        parameters:
+          command: "! cbmem -c | grep -nE '\\<(ERROR|ASSERT|BUG|PANIC)\\>|\\<DIE\\(' "
