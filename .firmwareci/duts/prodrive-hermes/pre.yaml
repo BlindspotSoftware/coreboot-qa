@@ -1,0 +1,38 @@
+pre-stage:
+  - cmd: newdutctl
+    name: Shutdown the DUT.
+    parameters:
+      agent: "[[attributes.Agent]]"
+      device: "[[attributes.Device]]"
+      command: power
+      args: ["off"]
+
+  - cmd: newdutctl
+    name: Flash the provided binary.
+    parameters:
+      agent: "[[attributes.Agent]]"
+      device: "[[attributes.Device]]"
+      command: flash-write
+      args: ["[[input.Binary]]"]
+
+  - cmd: sleep
+    name: Wait for the DUT to settle
+    parameters:
+      duration: 15s
+
+  - cmd: newdutctl
+    name: Turn the DUT on
+    parameters:
+      agent: "[[attributes.Agent]]"
+      device: "[[attributes.Device]]"
+      command: power
+      args: ["hard-reset"]
+    options:
+      timeout: 2m
+
+  - cmd: ping
+    name: Wait for the device to become online.
+    options:
+      timeout: 4m
+    parameters:
+      host: "[[attributes.Host]]"

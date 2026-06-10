@@ -1,0 +1,83 @@
+name: Boot Test (Serial)
+description: Flash the provided firmware binary and conduct a boot test.
+
+defaults:
+  transport: &transport
+    proto: ssh
+    options:
+      host: "[[attributes.Host]]"
+      user: root
+      identity_file: /root/.ssh/fwci
+
+pre-stage:
+  - cmd: newdutctl
+    name: Shutdown the DUT.
+    parameters:
+      agent: "[[attributes.Agent]]"
+      device: "[[attributes.Device]]"
+      command: power
+      args: ["off"]
+
+  - cmd: newdutctl
+    name: Flash the provided binary.
+    parameters:
+      agent: "[[attributes.Agent]]"
+      device: "[[attributes.Device]]"
+      command: flash-write
+      args: ["[[input.Binary]]"]
+
+  - cmd: sleep
+    name: Wait for the DUT to settle
+    parameters:
+      duration: 15s
+
+  - cmd: newdutctl
+    name: Turn the DUT on
+    parameters:
+      agent: "[[attributes.Agent]]"
+      device: "[[attributes.Device]]"
+      command: power
+      args: ["hard-reset"]
+    options:
+      timeout: 2m
+
+  - cmd: newdutctl
+    name: Check Serial
+    parameters:
+      agent: "[[attributes.Agent]]"
+      device: "[[attributes.Device]]"
+      command: serial
+      args: ["-t", "5m", "XhcClearBiosOwnership: called to clear BIOS ownership"]
+    options:
+      timeout: 5m
+
+stages:
+  - name: Boot Test
+    steps:
+      - cmd: cmd
+        name: Print Kernel Version
+        transport: *transport
+        parameters:
+          executable: uname
+          args: ["-a"]
+
+      - cmd: cmd
+        name: Cat OS Version
+        transport: *transport
+        parameters:
+          executable: cat
+          args: ["/etc/os-release"]
+
+      - cmd: cmd
+        name: Print BIOS Information
+        transport: *transport
+        parameters:
+          executable: dmidecode
+          args: ["-t", "bios"]
+
+      - cmd: cmd
+        name: Power off device
+        transport: *transport
+        parameters:
+          executable: shutdown
+          args: ["now"]

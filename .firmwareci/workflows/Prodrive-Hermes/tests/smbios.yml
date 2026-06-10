@@ -1,0 +1,66 @@
+name: SMBIOS Sanity
+description: Validate SMBIOS tables exposed by coreboot.
+
+defaults:
+  transport: &transport
+    proto: ssh
+    options:
+      host: "[[attributes.Host]]"
+      user: root
+      identity_file: /root/.ssh/fwci
+
+stages:
+  - name: Check SMBIOS tables
+    steps:
+      - cmd: cmd
+        name: BIOS Information (Type 0)
+        transport: *transport
+        parameters:
+          executable: dmidecode
+          args: ["-t", "0"]
+          expect:
+            - regex: "(?i)vendor:\\s*coreboot"
+            - regex: "(?i)release date:\\s*\\d{2}/\\d{2}/\\d{4}"
+
+      - cmd: cmd
+        name: System Information (Type 1)
+        transport: *transport
+        parameters:
+          executable: dmidecode
+          args: ["-t", "1"]
+          expect:
+            - regex: "(?i)manufacturer:"
+            - regex: "(?i)product name:"
+
+      - cmd: cmd
+        name: Processor Information (Type 4)
+        transport: *transport
+        parameters:
+          executable: dmidecode
+          args: ["-t", "4"]
+          expect:
+            - regex: "(?i)processor information"
+            - regex: "(?i)status:.*populated"
+
+      - cmd: cmd
+        name: Memory Device (Type 17)
+        transport: *transport
+        parameters:
+          executable: dmidecode
+          args: ["-t", "17"]
+          expect:
+            - regex: "(?i)memory device"
+            - regex: "(?i)size:\\s*\\d+\\s*(MB|GB)"
+
+      - cmd: shell
+        name: dmidecode reports no errors
+        transport: *transport
+        parameters:
+          command: "! dmidecode 2>&1 >/dev/null | grep -iE 'error|invalid|bad'"
+
+      - cmd: cmd
+        name: Power off device
+        transport: *transport
+        parameters:
+          executable: shutdown
+          args: ["now"]
