@@ -1,0 +1,3 @@
+name: QEMU-Q35
+description: "These are tests for Coreboot running in QEMU (x86 q35 machine)."
+runs-on: qemu-q35

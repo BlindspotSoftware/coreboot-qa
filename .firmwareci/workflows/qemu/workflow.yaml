@@ -1,3 +1,0 @@
-name: QEMU
-description: "These are tests for Coreboot running in QEMU."
-runs-on: qemu-dut

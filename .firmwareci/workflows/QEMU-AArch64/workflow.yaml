@@ -1,0 +1,3 @@
+name: QEMU-AArch64
+description: "coreboot-only smoke test on QEMU aarch64 (virt). No payload/OS yet (edk2 is x86-only)."
+runs-on: qemu-aarch64

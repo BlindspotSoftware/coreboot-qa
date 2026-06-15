@@ -1,0 +1,44 @@
+name: coreboot Boot (smoke)
+description: >
+  Boot coreboot on the qemu-aarch64 virt board and verify it runs cleanly
+  through bootblock/romstage/ramstage and hands off to a tiny aarch64
+  hello-world payload (see payloads/aarch64-hello/). The payload writes a
+  fixed banner to the PL011 UART; matching that banner proves the full
+  bootblock -> romstage -> ramstage -> payload chain is intact. The rom is
+  served from firmwareci storage as a pre-baked artifact rather than the
+  per-job [[input.Binary]] so the smoke test exercises infra, not the
+  caller's build.
+
+stages:
+  - name: Boot coreboot
+    steps:
+      # mode: start (not run) so the teststep attaches socat to the serial PTY;
+      # mode: run only reads qemu's stdout/monitor, not the -serial pty console.
+      - cmd: qemu
+        name: Boot coreboot on aarch64
+        options:
+          timeout: 13m
+        parameters:
+          mode: start
+          executable: qemu-system-aarch64
+          firmware: "[[storage.CorebootAarch64Hello]]/coreboot-aarch64.rom"
+          variable: qemu_pid
+          args:
+            [
+              "-M", "virt,secure=on,virtualization=on",
+              "-cpu", "cortex-a53",
+              "-m", "8192",
+              "-smp", "1",
+              "-bios", "[[storage.CorebootAarch64Hello]]/coreboot-aarch64.rom",
+              "-nographic",
+            ]
+          serial:
+            # Single expect on the payload banner: it proves the whole chain
+            # (coreboot booted -> BL31 -> payload ran). Don't also pre-match
+            # "coreboot-": the teststep polls expects coarsely, so that early
+            # match can land *after* HELLO has already streamed, and matching it
+            # discards HELLO from the buffer -> the HELLO expect then waits
+            # forever (the payload prints once and halts).
+            - expect:
+                regex: "FWCI-PAYLOAD-HELLO"
+              timeout: 11m0s

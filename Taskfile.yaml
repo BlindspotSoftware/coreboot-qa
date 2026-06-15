@@ -1,8 +1,52 @@
 version: "3"
 
+vars:
+  HELLO_DIR: payloads/aarch64-hello
+  HELLO_ELF: payloads/aarch64-hello/hello.elf
+  CBFSTOOL: '{{.CBFSTOOL | default "cbfstool"}}'
+
 tasks:
   build-images:
     desc: Build the QEMU disk images
     dir: images
     cmds:
       - make all
+
+  build-hello-payload:
+    desc: Build the aarch64 hello-world coreboot payload (uses a debian:bookworm container so no cross-gcc is required on the host)
+    dir: "{{.HELLO_DIR}}"
+    sources:
+      - hello.S
+      - hello.ld
+    generates:
+      - hello.elf
+    cmds:
+      - |
+        docker run --rm -v "$PWD":/work -w /work debian:bookworm bash -c '
+          set -e
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -qq
+          apt-get install -y -qq gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+          aarch64-linux-gnu-gcc -nostdlib -ffreestanding -c hello.S -o hello.o
+          aarch64-linux-gnu-ld -T hello.ld -nostdlib --no-warn-rwx-segments -o hello.elf hello.o
+          chown {{.USER_ID | default "1000"}}:{{.GROUP_ID | default "1000"}} hello.o hello.elf
+        '
+      - file hello.elf
+
+  inject-hello-payload:
+    desc: Bake the hello payload into an existing aarch64 coreboot.rom. Pass ROM=/path/to/coreboot.rom; the rom is patched in place.
+    deps: [build-hello-payload]
+    requires:
+      vars: [ROM]
+    cmds:
+      - "{{.CBFSTOOL}} {{.ROM}} remove -n fallback/payload 2>/dev/null || true"
+      - "{{.CBFSTOOL}} {{.ROM}} add-payload -f {{.HELLO_ELF}} -n fallback/payload -c lzma"
+      - "{{.CBFSTOOL}} {{.ROM}} print | grep fallback/payload"
+
+  build-aarch64-rom:
+    desc: End-to-end — build the payload, inject it into ROM. Pass ROM=/path/to/coreboot.rom.
+    requires:
+      vars: [ROM]
+    cmds:
+      - task: inject-hello-payload
+        vars: { ROM: '{{.ROM}}' }
