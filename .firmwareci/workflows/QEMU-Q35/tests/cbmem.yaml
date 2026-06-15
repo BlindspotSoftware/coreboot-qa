@@ -6,7 +6,7 @@ defaults:
     proto: ssh
     options:
       host: "[[attributes.Host]]"
-      port: 2222
+      port: 2223
       user: root
 
 stages:

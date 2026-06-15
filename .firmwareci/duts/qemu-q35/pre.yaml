@@ -1,10 +1,12 @@
 pre-stage:
   - cmd: qemu
-    name: Start Ubuntu VM with coreboot BIOS
+    name: Start NixOS VM with coreboot BIOS (q35)
     parameters:
       mode: start
       args:
         [
+          "-M",
+          "q35",
           "-m",
           "2048",
           "-smp",
@@ -32,4 +34,4 @@ pre-stage:
     name: Ping QEMU Host
     parameters:
       host: localhost
-      port: 2222
+      port: 2223

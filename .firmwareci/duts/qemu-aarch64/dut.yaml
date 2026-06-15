@@ -1,0 +1,6 @@
+name: QEMU-AArch64
+label: qemu-aarch64
+reservation-system: virtual
+attributes:
+  Host: localhost
+  Port: "2224"
