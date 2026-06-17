@@ -1,6 +1,5 @@
 name: Prodrive-Hermes
 label: prodrivehermes
-reservation-system: dutctl
 attributes:
   Host: coreboot-hermes.firmwareci.9e.network
   Agent: anti-monitor.firmwareci.9e.network:1024
