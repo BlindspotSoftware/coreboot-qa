@@ -47,7 +47,7 @@ pre-stage:
       agent: "[[attributes.Agent]]"
       device: "[[attributes.Device]]"
       command: serial
-      args: ["-t", "5m", "XhcClearBiosOwnership: called to clear BIOS ownership"]
+      args: ["-t", "5m", "PROGRESS"]
     options:
       timeout: 5m
 
