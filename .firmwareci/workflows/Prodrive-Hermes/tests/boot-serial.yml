@@ -51,6 +51,13 @@ pre-stage:
     options:
       timeout: 5m
 
+  - cmd: ping
+    name: Wait for SSH service
+    options:
+      timeout: 3m
+    parameters:
+      host: "[[attributes.Host]]"
+
 stages:
   - name: Boot Test
     steps:
