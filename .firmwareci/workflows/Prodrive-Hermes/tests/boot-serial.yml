@@ -47,7 +47,7 @@ pre-stage:
       agent: "[[attributes.Agent]]"
       device: "[[attributes.Device]]"
       command: serial
-      args: ["-t", "5m", "PROGRESS"]
+      args: ["-t", "5m", "expect", "PROGRESS"]
     options:
       timeout: 5m
 
