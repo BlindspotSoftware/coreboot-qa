@@ -43,10 +43,3 @@ stages:
           executable: lspci
           expect:
             - regex: "Serial bus controller"
-
-      - cmd: cmd
-        name: Power off device
-        transport: *transport
-        parameters:
-          executable: shutdown
-          args: ["now"]

@@ -81,10 +81,3 @@ stages:
         parameters:
           executable: dmidecode
           args: ["-t", "bios"]
-
-      - cmd: cmd
-        name: Power off device
-        transport: *transport
-        parameters:
-          executable: shutdown
-          args: ["now"]

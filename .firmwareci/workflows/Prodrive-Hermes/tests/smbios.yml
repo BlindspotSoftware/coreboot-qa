@@ -57,10 +57,3 @@ stages:
         transport: *transport
         parameters:
           command: "! dmidecode 2>&1 >/dev/null | grep -iE 'error|invalid|bad'"
-
-      - cmd: cmd
-        name: Power off device
-        transport: *transport
-        parameters:
-          executable: shutdown
-          args: ["now"]
