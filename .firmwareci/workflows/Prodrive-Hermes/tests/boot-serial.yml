@@ -10,7 +10,7 @@ defaults:
       identity_file: /root/.ssh/fwci
 
 pre-stage:
-  - cmd: newdutctl
+  - cmd: dutctl
     name: Shutdown the DUT.
     parameters:
       agent: "[[attributes.Agent]]"
@@ -18,7 +18,7 @@ pre-stage:
       command: power
       args: ["off"]
 
-  - cmd: newdutctl
+  - cmd: dutctl
     name: Flash the provided binary.
     parameters:
       agent: "[[attributes.Agent]]"
@@ -31,7 +31,7 @@ pre-stage:
     parameters:
       duration: 15s
 
-  - cmd: newdutctl
+  - cmd: dutctl
     name: Turn the DUT on
     parameters:
       agent: "[[attributes.Agent]]"
@@ -41,7 +41,7 @@ pre-stage:
     options:
       timeout: 2m
 
-  - cmd: newdutctl
+  - cmd: dutctl
     name: Check Serial
     parameters:
       agent: "[[attributes.Agent]]"

@@ -1,5 +1,5 @@
 post-stage:
-  - cmd: newdutctl
+  - cmd: dutctl
     name: Clean up. Shutdown the DUT.
     parameters:
       agent: "[[attributes.Agent]]"
