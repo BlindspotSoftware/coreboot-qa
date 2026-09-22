@@ -32,3 +32,10 @@ stages:
         parameters:
           executable: dmidecode
           args: ["-t", "bios"]
+
+      - cmd: cmd
+        name: Print OS Release 2
+        transport: *transport
+        parameters:
+          executable: cat
+          args: ["/var/lib/test"]
