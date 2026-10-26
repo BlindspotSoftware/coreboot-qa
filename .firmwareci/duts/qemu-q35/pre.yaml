@@ -1,4 +1,10 @@
 pre-stage:
+  - cmd: cmd
+    name: Spit firmware image
+    transport: { proto: local }
+    parameters:
+      executable: split
+      args: ["-n", "2", "[[input.Binary]]", "part_" ]
   - cmd: qemu
     name: Start NixOS VM with coreboot BIOS (q35)
     parameters:
@@ -11,9 +17,11 @@ pre-stage:
           "2048",
           "-smp",
           "2",
-          "-bios",
-          "[[input.Binary]]",
           "-nographic",
+          "-drive",
+          "if=pflash,format=raw,readonly=on,file=part_ab",
+          "-drive",
+	  "if=pflash,format=raw,file=part_aa",
           "-drive",
           "file=[[storage.OSImage]]/nixos.img,format=raw,if=ide",
           "-nic",
