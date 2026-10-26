@@ -4,10 +4,8 @@ description: >
   through bootblock/romstage/ramstage and hands off to a tiny aarch64
   hello-world payload (see payloads/aarch64-hello/). The payload writes a
   fixed banner to the PL011 UART; matching that banner proves the full
-  bootblock -> romstage -> ramstage -> payload chain is intact. The rom is
-  served from firmwareci storage as a pre-baked artifact rather than the
-  per-job [[input.Binary]] so the smoke test exercises infra, not the
-  caller's build.
+  bootblock -> romstage -> ramstage -> payload chain is intact. The payload
+  is built into [[input.Binary]].
 
 stages:
   - name: Boot coreboot
@@ -21,7 +19,7 @@ stages:
         parameters:
           mode: start
           executable: qemu-system-aarch64
-          firmware: "[[storage.CorebootAarch64Hello]]/coreboot-aarch64.rom"
+          firmware: "[[input.Binary]]"
           variable: qemu_pid
           args:
             [
@@ -29,7 +27,7 @@ stages:
               "-cpu", "cortex-a53",
               "-m", "8192",
               "-smp", "1",
-              "-bios", "[[storage.CorebootAarch64Hello]]/coreboot-aarch64.rom",
+              "-bios", "[[input.Binary]]",
               "-nographic",
             ]
           serial:
