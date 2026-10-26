@@ -9,34 +9,25 @@ in u-boot/edk2/LinuxBoot.
 
 ## Build the payload
 
-Requires `gcc-aarch64-linux-gnu` + `binutils-aarch64-linux-gnu`:
+Needs docker:
 
 ```sh
-sudo apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
-./build.sh
+task build-hello-payload
 ```
 
 Output: `hello.elf`.
 
 ## Bake into a coreboot rom
 
-Needs `cbfstool` (the firmwareci coreboot tree builds one under
-`build/cbfstool/cbfstool`):
+CI pulls `hello.elf` from `main` and builds it in:
 
-```sh
-ROM=/path/to/coreboot-aarch64.rom ./build.sh inject
+```text
+# CONFIG_PAYLOAD_NONE is not set
+CONFIG_PAYLOAD_ELF=y
+CONFIG_PAYLOAD_FILE="hello.elf"
 ```
 
-`add-payload` converts the ELF to selfboot segments. Verify with
-`cbfstool $ROM print`; `fallback/payload` should now exist.
-
-## Upload to firmwareci storage
-
-The smoke workflow references the rom as
-`[[storage.CorebootAarch64Hello]]/coreboot.rom`. Upload the patched rom
-under that storage name (via the fwci CLI or web frontend); see
-`.firmwareci/storage/CorebootAarch64Hello/storage.yaml` for the
-declaration.
+Changes to `hello.elf` apply once they're on `main`.
 
 ## Layout details
 

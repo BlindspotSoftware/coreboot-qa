@@ -2,8 +2,6 @@ version: "3"
 
 vars:
   HELLO_DIR: payloads/aarch64-hello
-  HELLO_ELF: payloads/aarch64-hello/hello.elf
-  CBFSTOOL: '{{.CBFSTOOL | default "cbfstool"}}'
 
 tasks:
   build-images:
@@ -32,21 +30,3 @@ tasks:
           chown {{.USER_ID | default "1000"}}:{{.GROUP_ID | default "1000"}} hello.o hello.elf
         '
       - file hello.elf
-
-  inject-hello-payload:
-    desc: Bake the hello payload into an existing aarch64 coreboot.rom. Pass ROM=/path/to/coreboot.rom; the rom is patched in place.
-    deps: [build-hello-payload]
-    requires:
-      vars: [ROM]
-    cmds:
-      - "{{.CBFSTOOL}} {{.ROM}} remove -n fallback/payload 2>/dev/null || true"
-      - "{{.CBFSTOOL}} {{.ROM}} add-payload -f {{.HELLO_ELF}} -n fallback/payload -c lzma"
-      - "{{.CBFSTOOL}} {{.ROM}} print | grep fallback/payload"
-
-  build-aarch64-rom:
-    desc: End-to-end — build the payload, inject it into ROM. Pass ROM=/path/to/coreboot.rom.
-    requires:
-      vars: [ROM]
-    cmds:
-      - task: inject-hello-payload
-        vars: { ROM: '{{.ROM}}' }

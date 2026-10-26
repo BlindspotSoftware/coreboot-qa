@@ -1,2 +1,4 @@
 coreboot.rom
 images/qemu
+.task/
+*.o
