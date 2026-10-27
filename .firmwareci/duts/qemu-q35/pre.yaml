@@ -24,8 +24,8 @@ pre-stage:
       variable: qemu_pid
       serial:
         - expect:
-            regex: "Booting from Hard Disk"
-          timeout: 30s
+            regex: "GNU GRUB"
+          timeout: 60s
         - expect:
             regex: "Welcome to NixOS"
           timeout: 120s
