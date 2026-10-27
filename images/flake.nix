@@ -14,13 +14,15 @@
     let
       fsType = "ext4";
 
-      # Legacy BIOS boot configuration (no UEFI) for coreboot/SeaBIOS testing
-      legacyConfig = { config, lib, pkgs, ... }: {
+      # grub for both bios (seabios) and uefi (edk2) payloads
+      bootConfig = { config, lib, pkgs, ... }: {
         boot.loader = {
           systemd-boot.enable = lib.mkForce false;
           grub = {
             enable = lib.mkForce true;
             device = "/dev/sda";
+            efiSupport = true;
+            efiInstallAsRemovable = true;
             extraConfig = ''
               serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1
               terminal_input serial console
@@ -32,11 +34,15 @@
         # Serial console for kernel
         boot.kernelParams = [ "console=ttyS0,115200" ];
 
-        # Override fileSystems to remove ESP mount (not present on legacy boot images)
+        # make-disk-image mounts the ESP on /boot, the base image wants /boot/EFI
         fileSystems = lib.mkForce {
           "/" = {
             device = "/dev/disk/by-label/nixos";
             fsType = "ext4";
+          };
+          "/boot" = {
+            device = "/dev/disk/by-label/ESP";
+            fsType = "vfat";
           };
         };
       };
@@ -45,7 +51,7 @@
         import "${nixpkgs}/nixos/lib/make-disk-image.nix" {
           inherit config fsType pkgs;
           inherit (nixpkgs) lib;
-          partitionTableType = "legacy";
+          partitionTableType = "hybrid";
           additionalSpace = "0";
         };
     in
@@ -65,7 +71,7 @@
             inherit system;
             modules = [
               baseConfig
-              legacyConfig
+              bootConfig
               corebootToolsConfig
             ];
           };
