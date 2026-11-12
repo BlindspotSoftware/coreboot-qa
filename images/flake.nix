@@ -56,6 +56,12 @@
         };
       };
 
+      # Hostname and stateVersion of the image the board's disk was installed from.
+      hermesConfig = { lib, ... }: {
+        networking.hostName = "coreboot-hermes";
+        system.stateVersion = lib.mkForce "23.11";
+      };
+
       generateDiskImage = { config, fsType, pkgs }:
         import "${nixpkgs}/nixos/lib/make-disk-image.nix" {
           inherit config fsType pkgs;
@@ -72,6 +78,16 @@
             baseConfig
             bootConfig
             corebootToolsConfig
+          ];
+        };
+
+        # Deployed onto the board's disk with `task deploy-hermes`.
+        hermes = nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = [
+            baseConfig
+            corebootToolsConfig
+            hermesConfig
           ];
         };
       };
