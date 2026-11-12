@@ -6,7 +6,7 @@ defaults:
     proto: ssh
     options:
       host: "[[attributes.Host]]"
-      port: 2223
+      port: "[[attributes.Port]]"
       user: root
 
   reboot: &reboot
@@ -39,6 +39,7 @@ defaults:
         timeout: 2m
       parameters:
         host: "[[attributes.Host]]"
+        # The validator rejects a templated ping port in test files.
         port: 2223
 
 stages:
