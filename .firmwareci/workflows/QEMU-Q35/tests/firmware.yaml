@@ -1,0 +1,47 @@
+name: Firmware Sanity
+description: Fail on firmware errors the kernel reports and on fwts ACPI/SMBIOS failures.
+
+defaults:
+  transport: &transport
+    proto: ssh
+    options:
+      host: "[[attributes.Host]]"
+      port: 2223
+      user: root
+
+stages:
+  - name: Firmware errors
+    on-failure: continue
+    steps:
+      # Known coreboot bug, drop from the allowlist once fixed upstream:
+      # q35 defines \_SB.PCI0._PRT twice (AE_ALREADY_EXISTS).
+      - cmd: shell
+        name: No new firmware errors in the kernel log
+        transport: *transport
+        parameters:
+          command: >-
+            ! dmesg
+            | grep -E 'ACPI (BIOS )?Error|Firmware Bug|Firmware Warn|Hardware Error|BAR [0-9]+: (no space|failed to assign)|can.t claim'
+            | grep -vE '_PRT\], AE_ALREADY_EXISTS|AE_ALREADY_EXISTS, During name lookup'
+
+      # Discarded labels are known coreboot bugs (SSDT checksum, FADT
+      # X_GPE0_BLK access width) plus MMapUnmappable, which comes from the
+      # test kernel's CONFIG_IO_STRICT_DEVMEM, not from the firmware.
+      - cmd: fwts
+        name: fwts ACPI and SMBIOS tests
+        transport: *transport
+        options:
+          timeout: 5m
+        parameters:
+          flags:
+            - --quiet
+            - --filter-error-discard=MMapUnmappable,X_GPE0_BLKBadAccessWidth,ACPITableChecksum
+            - acpitables
+            - method
+            - dmicheck
+            - mcfg
+            - fadt
+            - hpet
+            - checksum
+            - apicinstance
+            - wakealarm
