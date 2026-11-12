@@ -2,20 +2,29 @@
   description = "Coreboot QA Test Image";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     flake-utils.url = "github:numtide/flake-utils";
     pre-commit-hooks.url = "github:cachix/pre-commit-hooks.nix";
     firmwareci-base-image = {
-      url = "github:BlindspotSoftware/firmwareci-base-image/d121898ea61e2bb7334163b8ab61f5ede3fff139";
+      url = "github:BlindspotSoftware/firmwareci-base-image/a003a17b66e98c1a571036e99566c8920602bae9";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
   outputs = { self, flake-utils, nixpkgs, pre-commit-hooks, firmwareci-base-image, ... }:
     let
+      system = "x86_64-linux";
       fsType = "ext4";
+      inherit (firmwareci-base-image.outputs) baseConfig;
+
+      corebootToolsConfig = { pkgs, ... }: {
+        environment.systemPackages = with pkgs; [
+          coreboot-utils
+        ];
+      };
 
       # grub for both bios (seabios) and uefi (edk2) payloads
-      bootConfig = { config, lib, pkgs, ... }: {
+      bootConfig = { lib, ... }: {
         boot.loader = {
           systemd-boot.enable = lib.mkForce false;
           grub = {
@@ -55,31 +64,22 @@
           additionalSpace = "0";
         };
     in
-    flake-utils.lib.eachSystem [ "x86_64-linux" ] (system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-        inherit (firmwareci-base-image.outputs) baseConfig;
-
-        corebootToolsConfig = { config, pkgs, ... }: {
-          environment.systemPackages = with pkgs; [
-            coreboot-utils
+    {
+      nixosConfigurations = {
+        qemu = nixpkgs.lib.nixosSystem {
+          inherit system;
+          modules = [
+            baseConfig
+            bootConfig
+            corebootToolsConfig
           ];
         };
-
-        nixosConfigurations = {
-          qemu = nixpkgs.lib.nixosSystem {
-            inherit system;
-            modules = [
-              baseConfig
-              bootConfig
-              corebootToolsConfig
-            ];
-          };
-        };
+      };
+    } // flake-utils.lib.eachSystem [ system ] (system:
+      let
+        pkgs = import nixpkgs { inherit system; };
       in
       {
-        inherit nixosConfigurations;
-
         checks = {
           pre-commit-check = pre-commit-hooks.lib.${system}.run {
             src = ./.;
@@ -100,7 +100,7 @@
         packages = {
           qemu = generateDiskImage {
             inherit fsType pkgs;
-            inherit (nixosConfigurations.qemu) config;
+            inherit (self.nixosConfigurations.qemu) config;
           };
 
           default = self.packages.${system}.qemu;
