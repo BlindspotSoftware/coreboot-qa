@@ -14,7 +14,6 @@ emulated devices.
   - **storage** — the OS images the tests boot.
 - `images/` + `Taskfile.yaml` — build the QEMU disk images used by the emulated
   targets (`task build-images`).
-- `coreboot.rom` — a prebuilt image kept for convenience/local testing.
 
 ## How testing works
 
