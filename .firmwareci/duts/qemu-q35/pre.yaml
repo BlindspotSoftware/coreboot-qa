@@ -33,5 +33,5 @@ pre-stage:
   - cmd: ping
     name: Ping QEMU Host
     parameters:
-      host: localhost
-      port: 2223
+      host: "[[attributes.Host]]"
+      port: "[[attributes.Port]]"
