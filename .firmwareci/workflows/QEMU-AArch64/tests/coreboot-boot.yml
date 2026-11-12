@@ -15,7 +15,7 @@ stages:
       - cmd: qemu
         name: Boot coreboot on aarch64
         options:
-          timeout: 13m
+          timeout: 2m
         parameters:
           mode: start
           executable: qemu-system-aarch64
@@ -25,7 +25,7 @@ stages:
             [
               "-M", "virt,secure=on,virtualization=on",
               "-cpu", "cortex-a53",
-              "-m", "8192",
+              "-m", "1024",
               "-smp", "1",
               "-bios", "[[input.Binary]]",
               "-nographic",
@@ -39,4 +39,4 @@ stages:
             # forever (the payload prints once and halts).
             - expect:
                 regex: "FWCI-PAYLOAD-HELLO"
-              timeout: 11m0s
+              timeout: 1m
