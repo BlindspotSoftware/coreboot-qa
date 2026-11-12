@@ -88,6 +88,9 @@ build_submit() {
         return 0
     fi
     ulimit -t 3600 -f 2560000
+    # Lands in the coreboot banner, so a test can tell which rom the board
+    # actually runs. BUILD_TIMELESS does not touch it.
+    echo "CONFIG_LOCALVERSION=\"fwci-${GERRIT_PATCHSET_REVISION:0:12}\"" >>./.config
     make olddefconfig
     nice -n 20 make -j"$(jobs_for 768)" BUILD_TIMELESS=1
 
