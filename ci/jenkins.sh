@@ -1,7 +1,7 @@
 #!/bin/bash
-# Build step of the coreboot Jenkins job. Jenkins checks out every patchset
-# uploaded to review.coreboot.org and runs this script in that checkout. It
-# builds one rom per coreboot-qa workflow and submits it to FirmwareCI.
+# Build step of the coreboot Jenkins job. Every Code-Review+2 vote on
+# review.coreboot.org triggers it in a checkout of that patchset. It builds one
+# rom per coreboot-qa workflow and submits it to FirmwareCI.
 #
 # Needs from Jenkins: the GERRIT_* variables of the Gerrit Trigger plugin,
 # FWCI_TOKEN (or FWCI_EMAIL and FWCI_PASSWORD) and BLOBS_SSH_KEY, a key with
@@ -63,10 +63,30 @@ crossgcc() {
     done
 }
 
+# Every Code-Review+2 vote triggers a build, so a change with two +2 votes is
+# built twice. A failed check counts as "not submitted": at worst a target runs
+# twice, it is never skipped by mistake.
+already_submitted() {
+    local workflow=$1 api=${FWCI_API:-https://api.firmware-ci.com} token=${FWCI_TOKEN:-}
+    if [ -z "$token" ]; then
+        token=$(curl -fsS -X POST "$api/login" -H "Content-Type: application/json" \
+            -d "$(jq -n --arg e "${FWCI_EMAIL:-}" --arg p "${FWCI_PASSWORD:-}" '{email: $e, password: $p}')" |
+            jq -r '.data.token // empty')
+        [ -n "$token" ] || return 1
+    fi
+    curl -fsS -H "Authorization: $token" "$api/v0/$FWCI_ORG/job-requests?size=100&page=0" |
+        jq -e --arg w "$workflow" --arg l "/$GERRIT_CHANGE_NUMBER/$GERRIT_PATCHSET_NUMBER" \
+            'any(.data[]; .workflow_name == $w and ((.back_link // "") | endswith($l)))' >/dev/null
+}
+
 # build the coreboot rom from the in-place .config, post it to the FirmwareCI
 # workflow, and archive the rom.
 build_submit() {
     local workflow=$1 artifact=$2
+    if already_submitted "$workflow"; then
+        echo "$workflow already has a FirmwareCI request for $GERRIT_CHANGE_NUMBER/$GERRIT_PATCHSET_NUMBER, skipping"
+        return 0
+    fi
     ulimit -t 3600 -f 2560000
     make olddefconfig
     nice -n 20 make -j"$(jobs_for 768)" BUILD_TIMELESS=1
@@ -88,7 +108,15 @@ ccache -z || true
 # -f aborts on HTTP error instead of saving the 404 page as the script.
 curl -fsSL -o job-request-script.sh https://raw.githubusercontent.com/BlindspotSoftware/gerrit-integration/main/job-request-script.sh
 chmod +x job-request-script.sh
+# already_submitted needs jq before job-request-script.sh fetches its own.
+if ! command -v jq >/dev/null; then
+    mkdir -p "$HOME/.local/bin"
+    curl -fsSL -o "$HOME/.local/bin/jq" https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64 &&
+        chmod +x "$HOME/.local/bin/jq" || true
+    export PATH="$HOME/.local/bin:$PATH"
+fi
 export FWCI_PROJECT_LINK=github.com/BlindspotSoftware/coreboot-qa
+export FWCI_ORG=Coreboot-QA
 export BINARIES="Binary=build/coreboot.rom"
 
 # --- QEMU x86 (q35) ---
