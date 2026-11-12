@@ -32,3 +32,21 @@ stages:
         parameters:
           executable: dmidecode
           args: ["-t", "bios"]
+
+      # The pre-stage starts QEMU with -smp 2 -m 2048.
+      - cmd: cmd
+        name: Both CPUs are up
+        transport: *transport
+        parameters:
+          executable: nproc
+          expect:
+            - regex: "^2\\s*$"
+
+      - cmd: cmd
+        name: Linux sees about 2 GiB of RAM
+        transport: *transport
+        parameters:
+          executable: grep
+          args: ["MemTotal", "/proc/meminfo"]
+          expect:
+            - regex: "MemTotal:\\s+(19|20)[0-9]{5} kB"
