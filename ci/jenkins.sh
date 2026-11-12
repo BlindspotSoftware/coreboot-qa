@@ -9,6 +9,8 @@
 set -e
 trap 'rm -rf .git/hooks' EXIT
 
+echo 500 2>/dev/null > /proc/self/oom_score_adj || true
+
 git config --global --add safe.directory "*"
 rm -rf .git/hooks
 
@@ -20,13 +22,23 @@ git submodule foreach 'test -f go.mod && go mod download || true'
 
 EXP=$(grep -oP '^GCC_VERSION=\K[0-9.]+$' util/crossgcc/buildgcc)
 
+jobs_for() {
+    local per=$1 mem cpus n
+    mem=$(awk '/MemAvailable/{print int($2/1024)}' /proc/meminfo)
+    cpus=$(nproc)
+    n=$(( mem / per ))
+    [ "$n" -lt 1 ] && n=1
+    [ "$n" -gt "$cpus" ] && n="$cpus"
+    echo "$n"
+}
+
 # build the toolchain only when its version differs. Tarballs are cached in
 # $HOME (survives the per-build workspace wipe) and restored before building, so
 # the flaky GNU mirror (ftpmirror.gnu.org, seen failing on mpc) only has to fetch
 # each tarball successfully once. Verified tarballs are saved back after every
 # attempt.
 crossgcc() {
-    local arch=$1 gcc=$2 act ok cache="$HOME/.cache/coreboot-crossgcc-tarballs"
+    local arch=$1 gcc=$2 act ok cpus cache="$HOME/.cache/coreboot-crossgcc-tarballs"
     act=$(util/crossgcc/xgcc/bin/"$gcc" --version 2>/dev/null | head -n1 | grep -oP '[0-9.]+$' || true)
     [ "$EXP" = "$act" ] && return 0
 
@@ -36,7 +48,9 @@ crossgcc() {
     ulimit -t 7200
     for attempt in 1 2 3 4; do
         ok=
-        if nice -n 20 make crossgcc-"$arch" CPUS="$(nproc)"; then ok=1; fi
+        cpus=$(( $(jobs_for 2048) / attempt )); [ "$cpus" -lt 1 ] && cpus=1
+        echo "crossgcc-$arch attempt $attempt with CPUS=$cpus" >&2
+        if nice -n 20 make crossgcc-"$arch" CPUS="$cpus"; then ok=1; fi
         cp -an util/crossgcc/tarballs/. "$cache"/ 2>/dev/null || true
         [ -n "$ok" ] && return 0
         if [ "$attempt" -eq 4 ]; then
@@ -55,7 +69,7 @@ build_submit() {
     local workflow=$1 artifact=$2
     ulimit -t 3600 -f 2560000
     make olddefconfig
-    nice -n 20 make -j"$(nproc)" BUILD_TIMELESS=1
+    nice -n 20 make -j"$(jobs_for 768)" BUILD_TIMELESS=1
 
     FWCI_WORKFLOW_NAME="$workflow" ./job-request-script.sh
 
@@ -103,7 +117,8 @@ build_submit Prodrive-Hermes coreboot-prodrive-hermes.rom
 # --- QEMU aarch64 ---
 make clean
 cp configs/config.emulation_qemu_aarch64_fit_support_timestamps ./.config
-# no payload by default on arm64, the smoke test needs one
+# arm64 defaults to PAYLOAD_NONE; the QEMU-AArch64 smoke test expects the
+# hello payload's banner on the UART.
 curl -fsSL -o hello.elf https://raw.githubusercontent.com/BlindspotSoftware/coreboot-qa/main/payloads/aarch64-hello/hello.elf
 echo '# CONFIG_PAYLOAD_NONE is not set' >>./.config
 echo 'CONFIG_PAYLOAD_ELF=y' >>./.config
