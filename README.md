@@ -14,10 +14,13 @@ emulated devices.
   - **storage** — the OS images the tests boot.
 - `images/` + `Taskfile.yaml` — build the QEMU disk images used by the emulated
   targets (`task build-images`).
+- `ci/jenkins.sh` is the build step of the coreboot Jenkins job. It builds the
+  roms and submits them to FirmwareCI.
 
 ## How testing works
 
-1. coreboot is built into a `coreboot.rom` (one per target) by CI.
+1. For every patchset uploaded to Gerrit, Jenkins builds one `coreboot.rom`
+   per target with `ci/jenkins.sh`.
 2. CI submits that rom to FirmwareCI, referencing this repository as the
    project (`FWCI_PROJECT_LINK`).
 3. FirmwareCI flashes/boots the rom on the matching DUT — real hardware
@@ -26,8 +29,22 @@ emulated devices.
    warm-reboot, and so on.
 4. Results are reported back per check to gerrit patchsets.
 
-To add a target, add a DUT and a workflow under `.firmwareci/` and put its
-checks in the workflow's `tests/` directory.
+To add a target, add a DUT and a workflow under `.firmwareci/`, put its
+checks in the workflow's `tests/` directory and build its rom in
+`ci/jenkins.sh`.
+
+## CI targets
+
+| Workflow | coreboot config | Notes |
+|---|---|---|
+| QEMU-Q35 | `config.emulation_qemu_x86_q35_smm_tseg` | SeaBIOS payload, `CONFIG_SEABIOS_HARDWARE_IRQ=n` |
+| Prodrive-Hermes | `config.prodrive_hermes.edk2` from the private blobs repo | devicetree patched before the build, see below |
+| QEMU-AArch64 | `config.emulation_qemu_aarch64_fit_support_timestamps` | payload is `payloads/aarch64-hello/hello.elf` from `main` |
+
+coreboot `die()`s on the bar-less generic devices in the Hermes devicetree
+(`cnvi_wifi`, `uart2`), so `ci/jenkins.sh` reduces both to plain devices with
+`sed` before the build. Hermes results are for that patched tree, not for
+plain upstream.
 
 ## coreboot source
 
