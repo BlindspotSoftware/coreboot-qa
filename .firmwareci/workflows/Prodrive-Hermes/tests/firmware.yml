@@ -1,0 +1,222 @@
+name: Boot and Firmware Checks
+description: Boot the flashed firmware once and run every check against that boot.
+
+defaults:
+  transport: &transport
+    proto: ssh
+    options:
+      host: "[[attributes.Host]]"
+      user: root
+      identity_file: /root/.ssh/fwci
+
+stages:
+  - name: Checks
+    on-failure: continue
+    steps:
+      - cmd: cmd
+        name: Print Kernel Version
+        transport: *transport
+        parameters:
+          executable: uname
+          args: ["-a"]
+
+      - cmd: cmd
+        name: Booted through UEFI
+        transport: *transport
+        parameters:
+          executable: test
+          args: ["-d", "/sys/firmware/efi"]
+
+      - cmd: cmd
+        name: All six CPUs are up
+        transport: *transport
+        parameters:
+          executable: nproc
+          expect:
+            - regex: "^6\\s*$"
+
+      - cmd: cmd
+        name: Linux sees about 32 GiB of RAM
+        transport: *transport
+        parameters:
+          executable: grep
+          args: ["MemTotal", "/proc/meminfo"]
+          expect:
+            - regex: "MemTotal:\\s+3[12][0-9]{6} kB"
+
+      - cmd: cmd
+        name: CBMEM has the console and timestamps
+        transport: *transport
+        parameters:
+          executable: cbmem
+          args: ["-l"]
+          expect:
+            - regex: "CONSOLE"
+            - regex: "TIME STAMP"
+
+      # Known errors: the config enables a TPM that the probe does not find,
+      # "No header found" comes from the EDID parser, and the graphics
+      # hand-off ALERT is not explained yet.
+      - cmd: shell
+        name: No new errors in the coreboot console
+        transport: *transport
+        parameters:
+          command: >-
+            ! cbmem -c
+            | grep -E '\[(EMERG|ALERT|CRIT|ERROR) *\]'
+            | grep -vE 'pc80_tpm_probe: No TPM device found|tlcl_lib_init: TIS probe failed|TPM Error \(0x486\)|No header found|Graphics hand-off block not found'
+
+      - cmd: shell
+        name: coreboot boots in under 10 seconds
+        transport: *transport
+        parameters:
+          command: |
+            t=$(cbmem -t | awk -F': ' '/^Total Time/ { gsub(",", "", $2); print $2 }')
+            echo "coreboot boot time: $t us"
+            [ "$t" -lt 10000000 ]
+
+      - cmd: cmd
+        name: BIOS Information (Type 0)
+        transport: *transport
+        parameters:
+          executable: dmidecode
+          args: ["-t", "0"]
+          expect:
+            - regex: "(?i)vendor:\\s*coreboot"
+            - regex: "(?i)release date:\\s*\\d{2}/\\d{2}/\\d{4}"
+
+      - cmd: cmd
+        name: System Information (Type 1)
+        transport: *transport
+        parameters:
+          executable: dmidecode
+          args: ["-t", "1"]
+          expect:
+            - regex: "(?i)manufacturer:"
+            - regex: "(?i)product name:"
+
+      - cmd: cmd
+        name: Processor Information (Type 4)
+        transport: *transport
+        parameters:
+          executable: dmidecode
+          args: ["-t", "4"]
+          expect:
+            - regex: "(?i)processor information"
+            - regex: "(?i)status:.*populated"
+
+      - cmd: cmd
+        name: Memory Device (Type 17)
+        transport: *transport
+        parameters:
+          executable: dmidecode
+          args: ["-t", "17"]
+          expect:
+            - regex: "(?i)memory device"
+            - regex: "(?i)size:\\s*\\d+\\s*(MB|GB)"
+
+      - cmd: shell
+        name: dmidecode reports no errors
+        transport: *transport
+        parameters:
+          command: "! dmidecode 2>&1 >/dev/null | grep -iE 'error|invalid|bad'"
+
+      - cmd: shell
+        name: PCI devices match the known list
+        transport: *transport
+        parameters:
+          command: |
+            cat > /tmp/pci.expected <<'EOF'
+            00:00.0 8086:3ec6
+            00:02.0 8086:3e96
+            00:04.0 8086:1903
+            00:08.0 8086:1911
+            00:12.0 8086:a379
+            00:14.0 8086:a36d
+            00:14.2 8086:a36f
+            00:16.0 8086:a360
+            00:17.0 8086:a352
+            00:1c.0 8086:a33c
+            00:1c.5 8086:a33d
+            00:1c.6 8086:a33e
+            00:1c.7 8086:a33f
+            00:1d.0 8086:a335
+            00:1d.6 8086:a336
+            00:1e.0 8086:a328
+            00:1e.1 8086:a329
+            00:1f.0 8086:a309
+            00:1f.3 8086:a348
+            00:1f.4 8086:a323
+            00:1f.5 8086:a324
+            01:00.0 8086:1539
+            02:00.0 8086:1539
+            03:00.0 8086:1539
+            04:00.0 8086:1539
+            05:00.0 8086:157c
+            06:00.0 1a03:1150
+            07:00.0 1a03:2000
+            EOF
+            lspci -n | awk '{ print $1, $3 }' | diff -u /tmp/pci.expected -
+
+      # Known coreboot bug, drop from the allowlist once fixed upstream: the
+      # DSDT references \_SB.PCI0.GNA but never defines it.
+      - cmd: shell
+        name: No new firmware errors in the kernel log
+        transport: *transport
+        parameters:
+          command: >-
+            ! dmesg
+            | grep -E 'ACPI (BIOS )?Error|Firmware Bug|Firmware Warn|Hardware Error|BAR [0-9]+: (no space|failed to assign)|can.t claim'
+            | grep -vF '\_SB_.PCI0.GNA_'
+
+      # Discarded labels: \_SB.PERC._CRS has a maximum below its minimum and a
+      # length that does not fit, the MCFG range is not reserved in the memory
+      # map (all coreboot bugs), and MMapUnmappable comes from the test
+      # kernel's CONFIG_IO_STRICT_DEVMEM, not from the firmware.
+      # --force-clean: fwts appends to its results log, which survives reboots
+      # on this disk, and the step would read an older run's verdict.
+      - cmd: fwts
+        name: fwts ACPI and SMBIOS tests
+        transport: *transport
+        options:
+          timeout: 5m
+        parameters:
+          flags:
+            - --quiet
+            - --force-clean
+            - --filter-error-discard=Method_CRS64BitQWordAddrSpaceMaxLessThanMin,Method_CRS64BitQWordAddrSpaceLengthInvalid,MCFGMMIONotReserved,MMapUnmappable
+            - acpitables
+            - method
+            - dmicheck
+            - mcfg
+            - fadt
+            - hpet
+            - checksum
+            - apicinstance
+            - wakealarm
+            - madt
+
+      # common.bios_wp and common.spi_desc are left out: the config does not
+      # write-protect the BIOS region or lock the flash descriptor.
+      - cmd: chipsec
+        name: chipsec platform locks
+        transport: *transport
+        options:
+          timeout: 10m
+        parameters:
+          modules:
+            - common.spi_lock
+            - common.bios_ts
+            - common.smm
+            - common.smrr
+            - common.ia32cfg
+            - common.memlock
+
+  - name: Collect logs
+    run-condition: failure
+    steps:
+      - cmd: shell
+        name: coreboot console and kernel log
+        transport: *transport
+        parameters:
+          command: cbmem -c; dmesg
