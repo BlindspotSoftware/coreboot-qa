@@ -38,13 +38,8 @@ checks in the workflow's `tests/` directory and build its rom in
 | Workflow | coreboot config | Notes |
 |---|---|---|
 | QEMU-Q35 | `config.emulation_qemu_x86_q35_smm_tseg` | SeaBIOS payload, `CONFIG_SEABIOS_HARDWARE_IRQ=n` |
-| Prodrive-Hermes | `config.prodrive_hermes.edk2` from the private blobs repo | devicetree patched before the build, see below |
+| Prodrive-Hermes | `config.prodrive_hermes.edk2` from the private blobs repo | edk2 payload |
 | QEMU-AArch64 | `config.emulation_qemu_aarch64_fit_support_timestamps` | payload is `payloads/aarch64-hello/hello.elf` from `main` |
-
-coreboot `die()`s on the bar-less generic devices in the Hermes devicetree
-(`cnvi_wifi`, `uart2`), so `ci/jenkins.sh` reduces both to plain devices with
-`sed` before the build. Hermes results are for that patched tree, not for
-plain upstream.
 
 ## coreboot source
 
