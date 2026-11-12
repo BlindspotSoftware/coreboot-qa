@@ -20,6 +20,22 @@ stages:
           executable: uname
           args: ["-a"]
 
+      # ci/jenkins.sh puts fwci-<commit> into the coreboot version. Flashing
+      # verifies the chip; this checks that the board then runs that rom.
+      - cmd: shell
+        name: Read the build id of the flashed rom
+        transport:
+          proto: local
+        parameters:
+          command: "id=$(grep -aoE 'fwci-[0-9a-f]{12}' '[[input.Binary]]' | head -1); [ -n \"$id\" ] && printf '%s' \"$id\""
+          variable: expected_build
+
+      - cmd: shell
+        name: The board runs the flashed rom
+        transport: *transport
+        parameters:
+          command: "[ -n '{{ expected_build }}' ] && cbmem -c | grep -m1 -F -- '{{ expected_build }}'"
+
       - cmd: cmd
         name: Booted through UEFI
         transport: *transport
