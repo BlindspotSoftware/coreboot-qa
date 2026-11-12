@@ -60,6 +60,9 @@
       hermesConfig = { lib, ... }: {
         networking.hostName = "coreboot-hermes";
         system.stateVersion = lib.mkForce "23.11";
+        # A freshly written disk image's root ends where its contents end.
+        boot.growPartition = true;
+        boot.loader.efi.efiSysMountPoint = "/boot/EFI";
       };
 
       generateDiskImage = { config, fsType, pkgs }:
