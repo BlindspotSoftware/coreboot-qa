@@ -19,8 +19,8 @@ emulated devices.
 
 ## How testing works
 
-1. For every patchset uploaded to Gerrit, Jenkins builds one `coreboot.rom`
-   per target with `ci/jenkins.sh`.
+1. For every Code-Review+2 vote on a patchset in Gerrit, Jenkins builds one
+   `coreboot.rom` per target with `ci/jenkins.sh`.
 2. CI submits that rom to FirmwareCI, referencing this repository as the
    project (`FWCI_PROJECT_LINK`).
 3. FirmwareCI flashes/boots the rom on the matching DUT — real hardware
