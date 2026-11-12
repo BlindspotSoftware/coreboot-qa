@@ -49,7 +49,7 @@ stages:
           args: ["-t", "17"]
           expect:
             - regex: "(?i)memory device"
-            - regex: "(?i)size:\\s*\\d+\\s*(MB|GB)"
+            - regex: "(?i)size:\\s*\\d+\\s*[MG]i?B"
 
       - cmd: shell
         name: dmidecode reports no errors
