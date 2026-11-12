@@ -13,6 +13,9 @@ tasks:
   build-hello-payload:
     desc: Build the aarch64 hello-world coreboot payload (uses a debian:bookworm container so no cross-gcc is required on the host)
     dir: "{{.HELLO_DIR}}"
+    vars:
+      USER_ID: { sh: id -u }
+      GROUP_ID: { sh: id -g }
     sources:
       - hello.S
       - hello.ld
@@ -27,6 +30,6 @@ tasks:
           apt-get install -y -qq gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
           aarch64-linux-gnu-gcc -nostdlib -ffreestanding -c hello.S -o hello.o
           aarch64-linux-gnu-ld -T hello.ld -nostdlib --no-warn-rwx-segments -o hello.elf hello.o
-          chown {{.USER_ID | default "1000"}}:{{.GROUP_ID | default "1000"}} hello.o hello.elf
+          chown {{.USER_ID}}:{{.GROUP_ID}} hello.o hello.elf
         '
       - file hello.elf
