@@ -1,0 +1,47 @@
+pre-stage:
+  - cmd: cmd
+    name: Stitch payload
+    transport: { proto: local }
+    parameters:
+      executable: "[[storage.cbfstool]]/[[storage.cbfstool.cbfstool]]"
+      args: ["[[input.Binary]]", "add-payload", "-f", "[[storage.uImage_FIT_uroot_aarch64]]/Image", "-n", "fallback/payload" ]
+  - cmd: qemu
+    name: Start NixOS VM with coreboot BIOS (aarch64 virt)
+    parameters:
+      mode: start
+      args:
+        [
+          "-M",
+          "virt,secure=on,virtualization=on",
+          "-m",
+          "4096",
+          "-cpu",
+          "cortex-a53",
+          "-smp",
+          "4",
+	  "--accel",
+          "tcg,thread=multi",
+          "-nographic",
+          "-bios",
+          "[[input.Binary]]",
+          "-drive",
+          "file=[[storage.OSImage_aarch64]]/nixos.img,format=raw",
+          "-nic",
+          "user,hostfwd=tcp::[[attributes.Port]]-:22,hostname=qemu",
+        ]
+      executable: "qemu-system-aarch64"
+      firmware: "[[input.Binary]]"
+      variable: qemu_pid
+      serial:
+        - expect:
+            regex: "Welcome to u-root!"
+          timeout: 60s
+        - expect:
+            regex: "Welcome to NixOS"
+          timeout: 600s
+
+  - cmd: ping
+    name: Ping QEMU Host
+    parameters:
+      host: localhost
+      port: "[[attributes.Port]]"

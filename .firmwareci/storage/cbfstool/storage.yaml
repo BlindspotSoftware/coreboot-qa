@@ -1,0 +1,6 @@
+name: cbfstool
+uri: fwci://cbfstool
+
+# Reference these from a test as [[storage.cbfstool]]/<path>
+paths:
+  cbfstool: cbfstool

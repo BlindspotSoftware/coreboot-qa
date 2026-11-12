@@ -1,0 +1,4 @@
+name: uImage_FIT_uroot_aarch64
+uri: fwci://uImage_FIT_uroot_aarch64
+paths:
+  payload: uImage_FIT_uroot_aarch64
