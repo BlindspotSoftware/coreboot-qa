@@ -30,6 +30,18 @@ pre-stage:
     options:
       timeout: 2m
 
+  # Keeps the boot log in every job. PROGRESS is the payload's first progress
+  # code, so coreboot itself has finished by then.
+  - cmd: dutctl
+    name: coreboot hands over to the payload
+    parameters:
+      agent: "[[attributes.Agent]]"
+      device: "[[attributes.Device]]"
+      command: serial
+      args: ["-t", "5m", "expect", "PROGRESS"]
+    options:
+      timeout: 5m
+
   - cmd: ping
     name: Wait for the device to become online.
     options:
