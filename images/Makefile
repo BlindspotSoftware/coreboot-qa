@@ -1,4 +1,4 @@
-TARGETS = qemu
+TARGETS = qemu hermes
 
 all: $(TARGETS)
 

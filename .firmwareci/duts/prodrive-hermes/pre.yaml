@@ -15,6 +15,21 @@ pre-stage:
       command: flash-write
       args: ["[[input.Binary]]"]
 
+  # The board boots this image from the PiKVM's USB drive. The PiKVM keeps
+  # the image, and what the board writes to it, until the image changes.
+  - cmd: pikvm
+    name: Plug in the system image
+    options:
+      timeout: 30m
+    parameters:
+      command: image
+      host: "[[attributes.PiKVM]]"
+      auth:
+        username: coreboot
+        password: "[[secrets.PIKVM_PASSWORD]]"
+      image:
+        path: "[[storage.HermesImage]]/nixos.img"
+
   - cmd: sleep
     name: Wait for the DUT to settle
     parameters:

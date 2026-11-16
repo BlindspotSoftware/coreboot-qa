@@ -5,16 +5,10 @@ vars:
 
 tasks:
   build-images:
-    desc: Build the QEMU disk images
+    desc: Build the QEMU and Hermes disk images
     dir: images
     cmds:
       - make all
-
-  deploy-hermes:
-    desc: Install the Hermes OS as the board's next boot (power the board on and lock it in FirmwareCI first)
-    dir: images
-    cmds:
-      - nix run nixpkgs/nixos-26.05#nixos-rebuild -- boot --flake .#hermes --target-host root@coreboot-hermes.firmwareci.9e.network --use-substitutes
 
   build-hello-payload:
     desc: Build the aarch64 hello-world coreboot payload (uses a debian:bookworm container so no cross-gcc is required on the host)

@@ -56,21 +56,20 @@
         };
       };
 
-      # Hostname and stateVersion of the image the board's disk was installed from.
-      hermesConfig = { lib, ... }: {
+      # Boots from the PiKVM's USB drive.
+      hermesConfig = { pkgs, ... }: {
         networking.hostName = "coreboot-hermes";
-        system.stateVersion = lib.mkForce "23.11";
-        # A freshly written disk image's root ends where its contents end.
-        boot.growPartition = true;
-        boot.loader.efi.efiSysMountPoint = "/boot/EFI";
+        # A flash resets the boot order, and the firmware then boots its UEFI
+        # shell before the USB drive. The shell runs this.
+        boot.loader.systemd-boot.extraFiles."startup.nsh" =
+          pkgs.writeText "startup.nsh" "fs0:\\EFI\\BOOT\\BOOTX64.EFI\r\n";
       };
 
-      generateDiskImage = { config, fsType, pkgs }:
+      generateDiskImage = { config, fsType, pkgs, additionalSpace ? "0" }:
         import "${nixpkgs}/nixos/lib/make-disk-image.nix" {
-          inherit config fsType pkgs;
+          inherit config fsType pkgs additionalSpace;
           inherit (nixpkgs) lib;
           partitionTableType = "hybrid";
-          additionalSpace = "0";
         };
     in
     {
@@ -84,7 +83,6 @@
           ];
         };
 
-        # Deployed onto the board's disk with `task deploy-hermes`.
         hermes = nixpkgs.lib.nixosSystem {
           inherit system;
           modules = [
@@ -120,6 +118,13 @@
           qemu = generateDiskImage {
             inherit fsType pkgs;
             inherit (self.nixosConfigurations.qemu) config;
+          };
+
+          # The drive keeps what the board writes from one job to the next.
+          hermes = generateDiskImage {
+            inherit fsType pkgs;
+            inherit (self.nixosConfigurations.hermes) config;
+            additionalSpace = "1G";
           };
 
           default = self.packages.${system}.qemu;

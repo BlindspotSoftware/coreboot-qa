@@ -5,3 +5,4 @@ attributes:
   Host: coreboot-hermes.firmwareci.9e.network
   Agent: anti-monitor.firmwareci.9e.network:2024
   Device: hermes
+  PiKVM: hermes-pikvm.firmwareci.9e.network
