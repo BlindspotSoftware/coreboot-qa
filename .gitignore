@@ -1,4 +1,5 @@
 coreboot.rom
 images/qemu
+images/hermes
 .task/
 *.o

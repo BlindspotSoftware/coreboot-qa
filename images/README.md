@@ -10,12 +10,16 @@ Output: `qemu/nixos.img`, uploaded to FirmwareCI as the `OSImage` storage.
 
 ## Prodrive Hermes
 
-The board boots NixOS from its own disk. `nixosConfigurations.hermes` is that
-system. Power the board on, lock it in FirmwareCI, then from the repo root:
+Build: `make hermes` or `nix build .#hermes`
+
+Output: `hermes/nixos.img`, uploaded to FirmwareCI as the `HermesImage`
+storage. The DUT's pre-stage plugs it into the board through the PiKVM's USB
+drive.
+
+To upload a new version, compress it, add it under a new name and point
+`.firmwareci/storage/HermesImage/storage.yaml` at that name:
 
 ```sh
-task deploy-hermes
+zstd -T0 hermes/nixos.img -o nixos.img.zst
+fwci files add HermesImage_<version> nixos.img.zst
 ```
-
-It becomes the default boot entry for the next boot; the previous generation
-stays in the boot menu.
