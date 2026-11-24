@@ -2,7 +2,7 @@ name: Prodrive-Hermes
 label: prodrivehermes
 reservation-system: dutctl
 attributes:
-  Host: coreboot-hermes.firmwareci.9e.network
-  Agent: anti-monitor.firmwareci.9e.network:2024
+  Host: coreboot-hermes.firmwareci.9e.network # denylist:allow
+  Agent: anti-monitor.firmwareci.9e.network:2024 # denylist:allow
   Device: hermes
-  PiKVM: hermes-pikvm.firmwareci.9e.network
+  PiKVM: hermes-pikvm.firmwareci.9e.network # denylist:allow
