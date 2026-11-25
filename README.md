@@ -33,13 +33,21 @@ To add a target, add a DUT and a workflow under `.firmwareci/`, put its
 checks in the workflow's `tests/` directory and build its rom in
 `ci/jenkins.sh`.
 
+## PR check
+
+A PR that touches `.firmwareci/`, `ci/`, `images/` or `payloads/` builds the
+QEMU roms from coreboot main with `ci/jenkins.sh` and runs the QEMU-Q35 and
+QEMU-AArch64 workflows with the PR's tests on the GitHub runner. Hermes isn't
+part of it, the runner can't reach the board. To build another coreboot commit,
+start the `build and test` workflow by hand in the Actions tab.
+
 ## CI targets
 
 | Workflow | coreboot config | Notes |
 |---|---|---|
 | QEMU-Q35 | `config.emulation_qemu_x86_q35_smm_tseg` | SeaBIOS payload, `CONFIG_SEABIOS_HARDWARE_IRQ=n` |
 | Prodrive-Hermes | `config.prodrive_hermes.edk2` from the private blobs repo | edk2 payload |
-| QEMU-AArch64 | `config.emulation_qemu_aarch64_fit_support_timestamps` | payload is `payloads/aarch64-hello/hello.elf` from `main` |
+| QEMU-AArch64 | `config.emulation_qemu_aarch64_fit_support_timestamps` | payload is `payloads/aarch64-hello/hello.elf` from `main`, in the PR check from the PR |
 
 ## coreboot source
 
