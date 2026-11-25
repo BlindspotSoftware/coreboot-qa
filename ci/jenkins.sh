@@ -6,8 +6,17 @@
 # Needs from Jenkins: the GERRIT_* variables of the Gerrit Trigger plugin,
 # FWCI_TOKEN (or FWCI_EMAIL and FWCI_PASSWORD) and BLOBS_SSH_KEY, a key with
 # read access to the private blobs repo for the Hermes config.
+#
+# The coreboot-qa PR check runs it too: TARGETS picks the roms, SUBMIT=0 only
+# builds them into artifacts/, HELLO_ELF takes the aarch64 payload from there.
 set -e
 trap 'rm -rf .git/hooks' EXIT
+
+TARGETS=${TARGETS:-q35 hermes aarch64}
+SUBMIT=${SUBMIT:-1}
+REV=${GERRIT_PATCHSET_REVISION:-$(git rev-parse HEAD)}
+
+wants() { [[ " $TARGETS " == *" $1 "* ]]; }
 
 echo 500 2>/dev/null > /proc/self/oom_score_adj || true
 
@@ -83,52 +92,57 @@ already_submitted() {
 # workflow, and archive the rom.
 build_submit() {
     local workflow=$1 artifact=$2
-    if already_submitted "$workflow"; then
+    if [ "$SUBMIT" = 1 ] && already_submitted "$workflow"; then
         echo "$workflow already has a FirmwareCI request for $GERRIT_CHANGE_NUMBER/$GERRIT_PATCHSET_NUMBER, skipping"
         return 0
     fi
     ulimit -t 3600 -f 2560000
     # Lands in the coreboot banner, so a test can tell which rom the board
     # actually runs.
-    echo "CONFIG_LOCALVERSION=\"fwci-${GERRIT_PATCHSET_REVISION:0:12}\"" >>./.config
+    echo "CONFIG_LOCALVERSION=\"fwci-${REV:0:12}\"" >>./.config
     make olddefconfig
     nice -n 20 make -j"$(jobs_for 768)"
 
-    FWCI_WORKFLOW_NAME="$workflow" ./job-request-script.sh
+    if [ "$SUBMIT" = 1 ]; then
+        FWCI_WORKFLOW_NAME="$workflow" ./job-request-script.sh
+    fi
 
     mkdir -p artifacts
     cp build/coreboot.rom "artifacts/$artifact"
 }
 
-crossgcc i386 i386-elf-gcc
-crossgcc aarch64 aarch64-elf-gcc
+if wants q35 || wants hermes; then crossgcc i386 i386-elf-gcc; fi
+if wants aarch64; then crossgcc aarch64 aarch64-elf-gcc; fi
 
 export CCACHE_DIR=$HOME/.ccache
 export CCACHE_MAXSIZE=10G
 mkdir -p "$CCACHE_DIR"
 ccache -z || true
 
-# -f aborts on HTTP error instead of saving the 404 page as the script.
-curl -fsSL -o job-request-script.sh https://raw.githubusercontent.com/BlindspotSoftware/gerrit-integration/main/job-request-script.sh
-chmod +x job-request-script.sh
-# already_submitted needs jq before job-request-script.sh fetches its own.
-if ! command -v jq >/dev/null; then
-    mkdir -p "$HOME/.local/bin"
-    curl -fsSL -o "$HOME/.local/bin/jq" https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64 &&
-        chmod +x "$HOME/.local/bin/jq" || true
-    export PATH="$HOME/.local/bin:$PATH"
+if [ "$SUBMIT" = 1 ]; then
+    # -f aborts on HTTP error instead of saving the 404 page as the script.
+    curl -fsSL -o job-request-script.sh https://raw.githubusercontent.com/BlindspotSoftware/gerrit-integration/main/job-request-script.sh
+    chmod +x job-request-script.sh
+    # already_submitted needs jq before job-request-script.sh fetches its own.
+    if ! command -v jq >/dev/null; then
+        mkdir -p "$HOME/.local/bin"
+        curl -fsSL -o "$HOME/.local/bin/jq" https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64 &&
+            chmod +x "$HOME/.local/bin/jq" || true
+        export PATH="$HOME/.local/bin:$PATH"
+    fi
+    export FWCI_PROJECT_LINK=github.com/BlindspotSoftware/coreboot-qa
+    export FWCI_ORG=Coreboot-QA
+    export BINARIES="Binary=build/coreboot.rom"
 fi
-export FWCI_PROJECT_LINK=github.com/BlindspotSoftware/coreboot-qa
-export FWCI_ORG=Coreboot-QA
-export BINARIES="Binary=build/coreboot.rom"
 
-# --- QEMU x86 (q35) ---
+if wants q35; then
 make clean
 cp configs/config.emulation_qemu_x86_q35_smm_tseg ./.config
 echo 'CONFIG_SEABIOS_HARDWARE_IRQ=n' >>./.config
 build_submit QEMU-Q35 coreboot-qemu-q35.rom
+fi
 
-# --- Prodrive Hermes ---
+if wants hermes; then
 make clean
 rm -rf 3rdparty/blobs
 GIT_SSH_COMMAND="ssh -i $BLOBS_SSH_KEY -o StrictHostKeyChecking=no" \
@@ -144,17 +158,23 @@ if grep -qE 'device generic 0 (on|hidden)' "$DT"; then
 fi
 echo "PATCH OK: cnvi_wifi + uart2 generic devices removed"
 build_submit Prodrive-Hermes coreboot-prodrive-hermes.rom
+fi
 
-# --- QEMU aarch64 ---
+if wants aarch64; then
 make clean
 cp configs/config.emulation_qemu_aarch64_fit_support_timestamps ./.config
 # arm64 defaults to PAYLOAD_NONE; the QEMU-AArch64 smoke test expects the
 # hello payload's banner on the UART.
-curl -fsSL -o hello.elf https://raw.githubusercontent.com/BlindspotSoftware/coreboot-qa/main/payloads/aarch64-hello/hello.elf
+if [ -n "${HELLO_ELF:-}" ]; then
+    cp "$HELLO_ELF" hello.elf
+else
+    curl -fsSL -o hello.elf https://raw.githubusercontent.com/BlindspotSoftware/coreboot-qa/main/payloads/aarch64-hello/hello.elf
+fi
 echo '# CONFIG_PAYLOAD_NONE is not set' >>./.config
 echo 'CONFIG_PAYLOAD_ELF=y' >>./.config
 echo 'CONFIG_PAYLOAD_FILE="hello.elf"' >>./.config
 build_submit QEMU-AArch64 coreboot-qemu-aarch64.rom
+fi
 
 ccache -s || true
 ccache -c || true
