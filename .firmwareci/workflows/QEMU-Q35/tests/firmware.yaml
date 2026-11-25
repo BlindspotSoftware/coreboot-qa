@@ -44,4 +44,3 @@ stages:
             - hpet
             - checksum
             - apicinstance
-            - wakealarm
